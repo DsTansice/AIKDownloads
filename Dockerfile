@@ -20,9 +20,6 @@ WORKDIR /app
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# 如果有 public 目录则复制（兼容）
-COPY --from=builder /app/public* ./public 2>/dev/null || true
-
 # 非 root 用户
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001

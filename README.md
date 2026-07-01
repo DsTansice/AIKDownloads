@@ -1,4 +1,4 @@
-# AIKDownloads
+# AIKDownloader
 🎵 酷狗AIK音乐解析下载器
 
 一个基于 Next.js + Vercel 的酷狗音乐 AIK 分享链接解析工具，自动提取 MP3 直链，支持在线试听和下载。

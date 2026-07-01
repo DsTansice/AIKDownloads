@@ -6,7 +6,7 @@ services:
     image: dstansice/aikdownloader:latest
     container_name: aikdownloader
     ports:
-      - "3000:3000"
+      - "3666:3000"
     restart: unless-stopped
     environment:
       - NODE_ENV=production

@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  aikdownloader:
+    build: .
+    image: dstansice/aikdownloader:latest
+    container_name: aikdownloader
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production

@@ -9,7 +9,6 @@ export default function Home() {
   const [isWide, setIsWide] = useState(false)
   const audioRef = useRef(null)
 
-  // 检测宽屏
   useEffect(() => {
     const check = () => setIsWide(window.innerWidth >= 1100)
     check()
@@ -62,7 +61,6 @@ export default function Home() {
     })
   }
 
-  // 通过 fetch 下载文件，解决 Chrome 直接打开 MP3 的问题
   const downloadFile = async (url, filename) => {
     showToast('⏳ 正在下载...')
     try {
@@ -105,11 +103,11 @@ export default function Home() {
     return (bytes / 1024).toFixed(1) + ' KB'
   }
 
-  const getSafeFilename = (singer, songName) => {
-    return `${singer || 'unknown'} - ${songName || 'unknown'}.mp3`.replace(/[\\/:*?"<>|]/g, '_')
+  const getSafeFilename = (singer, songName, suffix = '') => {
+    const base = `${singer || 'unknown'} - ${songName || 'unknown'}${suffix}.mp3`
+    return base.replace(/[\\/:*?"<>|]/g, '_')
   }
 
-  // 左侧：输入区域
   const LeftPanel = () => (
     <div className="left-panel">
       <div className="card">
@@ -141,7 +139,7 @@ export default function Home() {
             <li>复制酷狗音乐分享链接（如 <code>t1.kugou.com/xxxx</code>）</li>
             <li>粘贴到上方输入框，点击"开始解析"</li>
             <li>后端自动获取页面并提取 MP3 直链</li>
-            <li>支持在线试听、复制链接、下载文件</li>
+            <li>支持 128kbps / 320kbps 在线试听和下载</li>
           </ol>
         </div>
       </div>
@@ -154,7 +152,6 @@ export default function Home() {
     </div>
   )
 
-  // 右侧：结果区域
   const RightPanel = () => {
     if (!result) {
       return (
@@ -168,7 +165,9 @@ export default function Home() {
       )
     }
 
-    const filename = getSafeFilename(result.singer, result.songName)
+    const filename128 = getSafeFilename(result.singer, result.songName, '')
+    const filename320 = getSafeFilename(result.singer, result.songName, ' [320kbps]')
+    const hasHQ = result.hqAvailable && result.hqUrl
 
     return (
       <div className="right-panel">
@@ -217,8 +216,9 @@ export default function Home() {
             </div>
           </div>
 
+          {/* 128kbps 区域 */}
           <div className="link-box">
-            <div className="link-label">🎧 在线试听</div>
+            <div className="link-label">🎧 在线试听（128kbps）</div>
             <audio
               ref={audioRef}
               className="audio-player"
@@ -226,11 +226,7 @@ export default function Home() {
               preload="metadata"
               src={result.mp3Url}
             />
-          </div>
-
-          <div className="link-box">
-            <div className="link-label">📥 MP3 直链（128kbps）</div>
-            <div className="link-url">{result.mp3Url}</div>
+            <div className="link-url" style={{ marginTop: '10px' }}>{result.mp3Url}</div>
             <div className="link-actions">
               <button
                 className="btn-small btn-copy"
@@ -240,13 +236,14 @@ export default function Home() {
               </button>
               <button
                 className="btn-small btn-download"
-                onClick={() => downloadFile(result.mp3Url, filename)}
+                onClick={() => downloadFile(result.mp3Url, filename128)}
               >
-                ⬇️ 下载 MP3
+                ⬇️ 下载 128kbps
               </button>
             </div>
           </div>
 
+          {/* 备用链接 */}
           {result.backupUrl && (
             <div className="link-box">
               <div className="link-label">🔗 备用链接（TX 节点）</div>
@@ -260,7 +257,7 @@ export default function Home() {
                 </button>
                 <button
                   className="btn-small btn-download"
-                  onClick={() => downloadFile(result.backupUrl, filename)}
+                  onClick={() => downloadFile(result.backupUrl, filename128)}
                 >
                   ⬇️ 下载
                 </button>
@@ -268,21 +265,61 @@ export default function Home() {
             </div>
           )}
 
-          {result.extra && result.extra['320hash'] && (
-            <div className="link-box" style={{ borderColor: 'rgba(255,193,7,0.2)' }}>
+          {/* 320kbps 高音质区域 */}
+          {hasHQ ? (
+            <div className="link-box hq-box">
               <div className="link-label" style={{ color: '#ffc107' }}>
-                💎 高音质信息（320kbps）
+                💎 高音质（{result.hqBitrate || 320}kbps）
               </div>
-              <div className="song-info" style={{ marginBottom: 0 }}>
-                <div className="info-item">
-                  <div className="label">Hash</div>
-                  <div className="value" style={{ fontSize: '10px' }}>{result.extra['320hash']}</div>
-                </div>
-                <div className="info-item">
-                  <div className="label">大小</div>
-                  <div className="value">{formatSize(result.extra['320filesize'])}</div>
-                </div>
+              <audio
+                className="audio-player"
+                controls
+                preload="metadata"
+                src={result.hqUrl}
+              />
+              <div className="link-url" style={{ marginTop: '10px' }}>{result.hqUrl}</div>
+              <div className="link-actions">
+                <button
+                  className="btn-small btn-copy"
+                  onClick={() => copyToClipboard(result.hqUrl)}
+                >
+                  📋 复制链接
+                </button>
+                <button
+                  className="btn-small btn-download"
+                  onClick={() => downloadFile(result.hqUrl, filename320)}
+                >
+                  ⬇️ 下载 320kbps
+                </button>
               </div>
+              {result.hqBackupUrl && (
+                <div style={{ marginTop: '8px' }}>
+                  <div className="link-url">{result.hqBackupUrl}</div>
+                  <div className="link-actions">
+                    <button
+                      className="btn-small btn-copy"
+                      onClick={() => copyToClipboard(result.hqBackupUrl)}
+                    >
+                      📋 复制备用
+                    </button>
+                    <button
+                      className="btn-small btn-download"
+                      onClick={() => downloadFile(result.hqBackupUrl, filename320)}
+                    >
+                      ⬇️ 下载备用
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="link-box" style={{ borderColor: 'rgba(255,193,7,0.15)', opacity: 0.7 }}>
+              <div className="link-label" style={{ color: '#888' }}>
+                💎 高音质（320kbps）— 未获取到链接
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '4px' }}>
+                该歌曲可能不提供 320kbps 下载，或需要 VIP 权限
+              </p>
             </div>
           )}
         </div>
@@ -300,7 +337,7 @@ export default function Home() {
       <div className="page">
         <div className="header">
           <h1>🎵 酷狗音乐分享链接解析器</h1>
-          <p>粘贴分享链接，自动提取 MP3 下载地址</p>
+          <p>粘贴分享链接，自动提取 MP3 下载地址（支持 128kbps / 320kbps）</p>
         </div>
 
         <div className={`main-content ${isWide ? 'wide' : ''}`}>
@@ -509,6 +546,10 @@ export default function Home() {
           border-radius: 12px;
           padding: 16px;
           margin-bottom: 12px;
+        }
+        .link-box.hq-box {
+          border-color: rgba(255,193,7,0.3);
+          background: rgba(255,193,7,0.03);
         }
         .link-box .link-label {
           font-size: 0.8rem;
